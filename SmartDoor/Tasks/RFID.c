@@ -32,25 +32,25 @@ void RFIDTask(void* parameter)
 		/* DoorCtrl -> RFID */
 		if(xQueueReceive(Ctrl_RFID_Queue, &CtrlqueueData_rx, portMAX_DELAY)== pdPASS)
 		{
-			if(CtrlqueueData_rx.cmd.start == 1)
-			{
-				CtrlqueueData_tx.status = Busy;
-				OLED_ShowString(0, 16, "RFID Busy ", OLED_8X16);
-				counter++;
-
-				if(counter > 10)
-				{
-					CtrlqueueData_tx.status = Idle;
-					CtrlqueueData_tx.result.pass = 1;
-					OLED_Clear();
-
-
-				}
-			}
-			else if(CtrlqueueData_rx.cmd.start != 1)
-			{
-				counter = 0;
-			}
+//			if(CtrlqueueData_rx.cmd.start == 1)
+//			{
+//				CtrlqueueData_tx.status = Busy;
+//				OLED_ShowString(0, 16, "RFID Busy ", OLED_8X16);
+//				counter++;
+//
+//				if(counter > 10)
+//				{
+//					CtrlqueueData_tx.status = Idle;
+//					CtrlqueueData_tx.result.pass = 1;
+//					OLED_Clear();
+//
+//
+//				}
+//			}
+//			else if(CtrlqueueData_rx.cmd.start != 1)
+//			{
+//				counter = 0;
+//			}
 
 		}
 
