@@ -1,4 +1,0 @@
-../Drivers/BSP/KEY/key.c:10:6:KEY_ROW_SCAN	16	static
-../Drivers/BSP/KEY/key.c:43:6:KEY_SCAN	16	static
-../Drivers/BSP/KEY/key.c:110:6:appendChar	32	static
-../Drivers/BSP/KEY/key.c:127:6:removeChar	24	static
