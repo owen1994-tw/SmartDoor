@@ -81,11 +81,12 @@ typedef struct {
 	BaseType_t fail;
 } Password_t;
 
-typedef struct {
-	int start;
-	int stop;
-	int delete;
-	int create;
+typedef enum {
+	init,
+	start,
+	stop,
+	delete,
+	create
 } Command_t;
 
 typedef struct {

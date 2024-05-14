@@ -5,14 +5,14 @@ extern QueueHandle_t RFID_Ctrl_Queue;
 static BaseType_t xStatus;
 
 static QueueData CtrlqueueData_rx = {
-    .cmd = {0},
+    .cmd = init,
     .result = {0},
 	.systemmode = INIT,
 	.status = Idle
 };
 
 static QueueData CtrlqueueData_tx = {
-    .cmd = {0},
+    .cmd = init,
     .result = {0},
 	.systemmode = INIT,
 	.status = Idle

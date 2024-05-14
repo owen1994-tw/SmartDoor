@@ -1,7 +1,6 @@
 #include "DoorCtrl.h"
 
 
-
 extern QueueHandle_t Ctrl_RFID_Queue;
 extern QueueHandle_t RFID_Ctrl_Queue;
 extern QueueHandle_t FPQueue;
@@ -26,8 +25,6 @@ char Item_test[] ="修改密碼";
 
 int RDID_pass;
 
-
-
 void DoorCtrlTask(void* parameter)
 {
 	Mode = INIT;
@@ -41,22 +38,27 @@ void DoorCtrlTask(void* parameter)
 
     QueueData queueData;
     QueueData RFIDqueueData_tx = {
-        .cmd = {0},
+        .cmd = init,
         .result = {0},
 		.systemmode = INIT,
 		.status = Idle
     };
 
     QueueData RFIDqueueData_rx = {
-        .cmd = {0},
+        .cmd = init,
         .result = {0},
 		.systemmode = INIT,
 		.status = Idle
     };
+
+	QueueData FPqueueData_rx_tx = {
+		.cmd = init,
+		.result = {0},
+		.systemmode = INIT,
+		.status = Idle
+	};
     QueueData  *pxRFIDqueueData;
     BaseType_t xStatus;
-
-
 
 	for(;;)
 	{
@@ -129,7 +131,7 @@ void DoorCtrlTask(void* parameter)
 		    		}
 		    		else if(press_key == 'B')
 		    		{
-		    			RFIDqueueData_tx.cmd.start = 1;
+		    			RFIDqueueData_tx.cmd = start;
 		    		}
 
 
@@ -158,7 +160,7 @@ void DoorCtrlTask(void* parameter)
 	            // Fail
 	            // ...
 	        }
-	        RFIDqueueData_tx.cmd.start = 1;
+	        RFIDqueueData_tx.cmd = start;
 
 	        /* RFID -> DoorCtrl */
 			if(xQueueReceive(RFID_Ctrl_Queue, &RFIDqueueData_rx, portMAX_DELAY)== pdPASS)
@@ -178,12 +180,6 @@ void DoorCtrlTask(void* parameter)
 
 			}
 
-
-
-
-
-
-
 	    	/* FingerPrint password */
 			/* *****************************
 			 * Queue of FingerPrint
@@ -198,12 +194,8 @@ void DoorCtrlTask(void* parameter)
 
 			/* DoorCtrl -> FP */
 
-
-			/* FP -> DoorCtrl */
-
 	    	OLED_Update();
 	        break;
-
 
 	    case CHECK_PW:
 
@@ -584,9 +576,6 @@ void DoorCtrlTask(void* parameter)
 					}
 					break;
 
-
-
-
 			/* Key password */
 			//	    	OLED_ShowString(0, 48, "Enter A  Clean B", OLED_8X16);
 //			OLED_ShowChinese(0, 48, "＊確認　　＃清除");
@@ -611,15 +600,9 @@ void DoorCtrlTask(void* parameter)
 	    case DEL_FP:
 
 			 break;
-
-
-
 	    default:
 	        break;
-
-
 		}
-
 
 		vTaskDelay(50);
 	}
