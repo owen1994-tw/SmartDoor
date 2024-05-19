@@ -19,12 +19,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-
+#include <MFRC522.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,7 +64,10 @@ QueueHandle_t RFID_Ctrl_Queue;
 QueueHandle_t Ctrl_FP_Queue;
 QueueHandle_t FP_Ctrl_Queue;
 
-
+//MFRC522
+uint8_t status;
+uint8_t str[MAX_LEN]; // Max_LEN = 16
+uint8_t sNum[5];
 
 //static TaskHandle_t IC_Task_Handle;
 
@@ -204,6 +209,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   BaseType_t xReturn = pdPASS;
 
@@ -222,6 +228,8 @@ int main(void)
 
 	if(NULL != AppTaskCreate_Handle)
 	vTaskStartScheduler();
+  //MFRC522
+	 MFRC522_Init();
 
   /* USER CODE END 2 */
 
@@ -229,6 +237,32 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  status = MFRC522_Request(PICC_REQIDL, str);
+	 	   status = MFRC522_Anticoll(str);
+
+	 	   if (status == MI_OK) {
+	 	    memcpy(sNum, str, 5);
+	 	    HAL_Delay(100);
+	 	    printf("Card UID: %02X %02X %02X %02X %02X\r\n", sNum[0], sNum[1], sNum[2], sNum[3], sNum[4]);
+
+	 	    if((str[0]==67) && (str[1]==4) && (str[2]==23) && (str[3]==20) && (str[4]==68) )
+	 	    {
+	 	      HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_SET);
+	 	      HAL_Delay(100);
+	 	      }
+	 	    else if((str[0]==243) && (str[1]==188) && (str[2]==5) && (str[3]==53) && (str[4]==127) )
+	 	      {
+	 	      HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_SET);
+	 	      HAL_Delay(2000);
+	 	    }
+	 	    else
+	 	    {
+	 	      HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_RESET);
+	 	    }
+	 	 }
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
