@@ -30,7 +30,7 @@ void FPTask(void* parameter)
 	{
 
 		/* FP -> DoorCtrl */
-		if(xQueueReceive(Ctrl_FP_Queue, &CtrlqueueData_rx, portMAX_DELAY)== pdPASS)
+		if(xQueueReceive(Ctrl_FP_Queue, &CtrlqueueData_rx, pdMS_TO_TICKS(100))== pdPASS)
 		{
 
 		}
@@ -38,7 +38,7 @@ void FPTask(void* parameter)
 
 
 		/* DoorCtrl -> FP */
-		xStatus = xQueueSend(FP_Ctrl_Queue, &CtrlqueueData_tx, portMAX_DELAY);
+		xStatus = xQueueSend(FP_Ctrl_Queue, &CtrlqueueData_tx, pdMS_TO_TICKS(100));
 		if (xStatus != pdPASS) {
 			printf("FP CtrlqueueData_tx fail");
 		}

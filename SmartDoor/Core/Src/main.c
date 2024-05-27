@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -57,10 +58,15 @@ static TaskHandle_t RFIDTask_Handle;
 static TaskHandle_t FPTask_Handle;
 
 //Queue Handle
-QueueHandle_t Ctrl_RFID_Queue;
-QueueHandle_t RFID_Ctrl_Queue;
+//QueueHandle_t Ctrl_RFID_Queue;
+//QueueHandle_t RFID_Ctrl_Queue;
 QueueHandle_t Ctrl_FP_Queue;
 QueueHandle_t FP_Ctrl_Queue;
+
+uint8_t data;
+uint8_t status;
+uint8_t str[MAX_LEN]; // Max_LEN = 16
+uint8_t sNum[5];
 
 
 
@@ -89,15 +95,15 @@ static void Queue_Init(void)
 {
 	QueueData QueueData_init;
 
-	Ctrl_RFID_Queue = xQueueCreate(QUEUE_LENGTH, sizeof(QueueData_init));
-	if (Ctrl_RFID_Queue == NULL) {
-		printf("Ctrl_RFID_Queue create fail \r \n");
-	}
-
-	RFID_Ctrl_Queue = xQueueCreate(QUEUE_LENGTH, sizeof(QueueData_init));
-	if (RFID_Ctrl_Queue == NULL) {
-		printf("RFID_Ctrl_Queue create fail \r \n");
-	}
+//	Ctrl_RFID_Queue = xQueueCreate(QUEUE_LENGTH, sizeof(QueueData_init));
+//	if (Ctrl_RFID_Queue == NULL) {
+//		printf("Ctrl_RFID_Queue create fail \r \n");
+//	}
+//
+//	RFID_Ctrl_Queue = xQueueCreate(QUEUE_LENGTH, sizeof(QueueData_init));
+//	if (RFID_Ctrl_Queue == NULL) {
+//		printf("RFID_Ctrl_Queue create fail \r \n");
+//	}
 
 
 	Ctrl_FP_Queue = xQueueCreate(QUEUE_LENGTH, sizeof(QueueData_init));
@@ -147,23 +153,23 @@ static void AppTaskCreate(void)
 	if(pdPASS == xReturn)
 		printf("DoorCtrlTask Task Create Successful!\r\n");
 
-	xReturn = xTaskCreate((TaskFunction_t	)RFIDTask,
-															(const char* 	)"RFIDTask",
-															(uint32_t 		)128,
-															(void* 		  	)NULL,
-															(UBaseType_t 	)5,
-															(TaskHandle_t*  )&RFIDTask_Handle);
-	if(pdPASS == xReturn)
-		printf("RFIDTask Task Create Successful!\r\n");
+//	xReturn = xTaskCreate((TaskFunction_t	)RFIDTask,
+//															(const char* 	)"RFIDTask",
+//															(uint32_t 		)128,
+//															(void* 		  	)NULL,
+//															(UBaseType_t 	)4,
+//															(TaskHandle_t*  )&RFIDTask_Handle);
+//	if(pdPASS == xReturn)
+//		printf("RFIDTask Task Create Successful!\r\n");
 
-	xReturn = xTaskCreate((TaskFunction_t	)FPTask,
-															(const char* 	)"FPTask",
-															(uint32_t 		)128,
-															(void* 		  	)NULL,
-															(UBaseType_t 	)5,
-															(TaskHandle_t*  )&FPTask_Handle);
-	if(pdPASS == xReturn)
-		printf("FPTask Task Create Successful!\r\n");
+//	xReturn = xTaskCreate((TaskFunction_t	)FPTask,
+//															(const char* 	)"FPTask",
+//															(uint32_t 		)128,
+//															(void* 		  	)NULL,
+//															(UBaseType_t 	)4,
+//															(TaskHandle_t*  )&FPTask_Handle);
+//	if(pdPASS == xReturn)
+//		printf("FPTask Task Create Successful!\r\n");
 
 
 
@@ -204,9 +210,11 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   BaseType_t xReturn = pdPASS;
 
+  MFRC522_Init();
   BSP_Init();
   printf("BSP Init Done!\r\n");
 

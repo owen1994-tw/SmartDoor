@@ -1,8 +1,8 @@
 #include "DoorCtrl.h"
 
 
-extern QueueHandle_t Ctrl_RFID_Queue;
-extern QueueHandle_t RFID_Ctrl_Queue;
+//extern QueueHandle_t Ctrl_RFID_Queue;
+//extern QueueHandle_t RFID_Ctrl_Queue;
 extern QueueHandle_t FPQueue;
 
 SystemMode_t Mode;
@@ -37,19 +37,19 @@ void DoorCtrlTask(void* parameter)
 	int Data = 0;
 
     QueueData queueData;
-    QueueData RFIDqueueData_tx = {
-        .cmd = init,
-        .result = {0},
-		.systemmode = INIT,
-		.status = Idle
-    };
-
-    QueueData RFIDqueueData_rx = {
-        .cmd = init,
-        .result = {0},
-		.systemmode = INIT,
-		.status = Idle
-    };
+//    QueueData RFIDqueueData_tx = {
+//        .cmd = init,
+//        .result = {0},
+//		.systemmode = INIT,
+//		.status = Idle
+//    };
+//
+//    QueueData RFIDqueueData_rx = {
+//        .cmd = init,
+//        .result = {0},
+//		.systemmode = INIT,
+//		.status = Idle
+//    };
 
 	QueueData FPqueueData_rx_tx = {
 		.cmd = init,
@@ -59,6 +59,14 @@ void DoorCtrlTask(void* parameter)
 	};
     QueueData  *pxRFIDqueueData;
     BaseType_t xStatus;
+
+
+    extern uint8_t data;
+    extern uint8_t status;
+    extern uint8_t str[MAX_LEN]; // Max_LEN = 16
+    extern uint8_t sNum[5];
+
+    uint8_t RFID_pass;
 
 	for(;;)
 	{
@@ -127,11 +135,6 @@ void DoorCtrlTask(void* parameter)
 		    		{
 		    			/* check password */
 		    			Mode = CHECK_PW;
-
-		    		}
-		    		else if(press_key == 'B')
-		    		{
-		    			RFIDqueueData_tx.cmd = start;
 		    		}
 
 
@@ -155,30 +158,34 @@ void DoorCtrlTask(void* parameter)
 
 
 	    	/* DoorCtrl -> RFID */
-	        xStatus = xQueueSend(Ctrl_RFID_Queue, &RFIDqueueData_tx, portMAX_DELAY);
-	        if (xStatus != pdPASS) {
-	            // Fail
-	            // ...
-	        }
-	        RFIDqueueData_tx.cmd = start;
+			status = MFRC522_Request(PICC_REQIDL, str);
+			status = MFRC522_Anticoll(str);
 
-	        /* RFID -> DoorCtrl */
-			if(xQueueReceive(RFID_Ctrl_Queue, &RFIDqueueData_rx, portMAX_DELAY)== pdPASS)
+			if (status == MI_OK)
 			{
-				if(RFIDqueueData_rx.result.pass == 1)
+				memcpy(sNum, str, 5);
+				vTaskDelay(100);
+				printf("Card UID: %02X %02X %02X %02X %02X\r\n", sNum[0], sNum[1], sNum[2], sNum[3], sNum[4]);
+
+				if((str[0]==67) && (str[1]==4) && (str[2]==23) && (str[3]==20) && (str[4]==68) )
 				{
+					HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_SET);
+					vTaskDelay(200);
+					HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_RESET);
+					RFID_pass = 1;
 					Mode = CHECK_RFID;
-//					RFIDqueueData.cmd.start = 0;
-
-//					OLED_ShowString(0, 32, "RFID pass ", OLED_8X16);
-//
-//					if(RFIDqueueData_rx.status == ERROR)
-//					{
-//						OLED_ShowString(0, 48, "RFID ERROR ", OLED_8X16);
-//					}
 				}
-
+				else if((str[0]==243) && (str[1]==188) && (str[2]==5) && (str[3]==53) && (str[4]==127) )
+				{
+					HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_SET);
+					vTaskDelay(200);
+					HAL_GPIO_WritePin(GPIOD,GPIO_PIN_13,GPIO_PIN_RESET);
+					RFID_pass = 1;
+					Mode = CHECK_RFID;
+				}
+				memset(str, 0, sizeof(str));
 			}
+
 
 	    	/* FingerPrint password */
 			/* *****************************
@@ -223,26 +230,26 @@ void DoorCtrlTask(void* parameter)
 
 	    case CHECK_RFID:
 
-			if (RFIDqueueData_rx.result.pass == 1)
+			if (RFID_pass == 1)
 			{
 				printf("RDID pass.\r\n");
-
+				RFID_pass = 0;
 				OLED_ClearArea(0, 16, 128, 16);
 				OLED_ShowChinese(0, 16, "卡片正確");
 				OLED_Update();
 				vTaskDelay(500);
 				Mode = OPEN_CLEAR;
 			}
-			else if (RFIDqueueData_rx.result.fail == 1)
-			{
-				printf("RDID fail.\r\n");
-
-				OLED_ClearArea(0, 16, 128, 16);
-				OLED_ShowChinese(0, 16, "卡片錯誤");
-				OLED_Update();
-				vTaskDelay(500);
-				Mode = CLOSE_CLEAR;
-			}
+//			else if (RFID_pass == 1)
+//			{
+//				printf("RDID fail.\r\n");
+//
+//				OLED_ClearArea(0, 16, 128, 16);
+//				OLED_ShowChinese(0, 16, "卡片錯誤");
+//				OLED_Update();
+//				vTaskDelay(500);
+//				Mode = CLOSE_CLEAR;
+//			}
 			OLED_Clear();
 			OLED_Update();
 
@@ -604,7 +611,7 @@ void DoorCtrlTask(void* parameter)
 	        break;
 		}
 
-		vTaskDelay(50);
+		vTaskDelay(200);
 	}
 
 
