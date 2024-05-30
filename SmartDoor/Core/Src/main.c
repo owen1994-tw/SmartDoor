@@ -63,11 +63,15 @@ static TaskHandle_t FPTask_Handle;
 QueueHandle_t Ctrl_FP_Queue;
 QueueHandle_t FP_Ctrl_Queue;
 
+QueueData gCtrl_RFID;
+
 uint8_t data;
 uint8_t status;
 uint8_t str[MAX_LEN]; // Max_LEN = 16
 uint8_t sNum[5];
 
+uint8_t storedRFIDCards[MAX_CARDS][RFID_CARD_LENGTH];
+uint8_t EmptyRFIDCards[RFID_CARD_LENGTH];
 
 
 //static TaskHandle_t IC_Task_Handle;
@@ -215,6 +219,7 @@ int main(void)
   BaseType_t xReturn = pdPASS;
 
   MFRC522_Init();
+  InitStoredRFIDCards();
   BSP_Init();
   printf("BSP Init Done!\r\n");
 

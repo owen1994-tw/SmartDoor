@@ -41,6 +41,8 @@ extern "C" {
 #include "queue.h"
 #include <KEY/key.h>
 #include <OLED/OLED.h>
+#include <MFRC522/MFRC522.h>
+#include <MFRC522/CardMan.h>
 #include "tasks.h"
 #include "usart.h"
 
