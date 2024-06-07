@@ -18,15 +18,18 @@ void AS608_Transmit(UART_HandleTypeDef *uart,
 int AS608_Receive(UART_HandleTypeDef *uart, int n, uint8_t *buffer)
 {
     /* Receive data byte by byte */
-	for (int i = 0; i < n; i++)
-		HAL_UART_Receive(uart, &buffer[i], 1, 1000);
+//	for (int i = 0; i < n; i++){
+////		vTaskDelay(1);
+//		HAL_UART_Receive(uart, &buffer[i], 1, 1000);
+//	}
+	HAL_UART_Receive(uart, buffer, n, 1000);
 
     int fail = 0;
     /* Check if the package is from AS608 */
     for (int i = 0; i < 6; i++)
         fail |= as608_hdr[i] != buffer[i];
 
-    return fail;
+    return -fail;
 }
 
 
@@ -158,8 +161,8 @@ int FP_Search(UART_HandleTypeDef *uart, int buffID){
     AS608_Transmit(uart, type, pkg_len, data, checksum);
 
     /* Receive */
-    uint8_t buffer[14] = {0};
-    int fail = AS608_Receive(uart, 14, buffer);
+    uint8_t buffer[16] = {0};
+    int fail = AS608_Receive(uart, 16, buffer);
     if (fail)
         return fail;
 
@@ -186,8 +189,9 @@ int register_new_fingerprint(UART_HandleTypeDef *uart)
      * TODO: Show the indicator to tell the user put the finger
      * on the device.
      */
+    HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
     while ((fail = FP_GenImg(uart)) == 0x2)
-    	HAL_Delay(10);;
+    	HAL_Delay(10);
     if (fail)
         return fail;
 
@@ -200,6 +204,7 @@ int register_new_fingerprint(UART_HandleTypeDef *uart)
      * TODO: Show the indicator to tell the user put the finger
      * on the device.
      */
+    HAL_GPIO_WritePin(LD6_GPIO_Port, LD6_Pin, GPIO_PIN_SET);
     while ((fail = FP_GenImg(uart)) == 0x2)
         HAL_Delay(10);
     if (fail)
