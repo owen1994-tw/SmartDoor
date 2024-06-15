@@ -107,10 +107,46 @@ int FP_Store(UART_HandleTypeDef *uart, int buffID, int pageID)
 {
     uint8_t type = AS608_CMD;
     uint8_t pkg_len[2] = {0x00, 0x06};
-    uint8_t data[4] = {AS608_Store, buffID, pageID};
+//    uint8_t data[4] = {AS608_Store, buffID, pageID};
+
+    uint8_t data[4];
+    data[0] = AS608_Store;          // 1 byte
+    data[1] = (uint8_t)buffID;      // 1 byte
+    data[2] = (uint8_t)(pageID >> 8); // 2 byte (high byte)
+    data[3] = (uint8_t)pageID;      // 2 byte (low byte)
 
     short cks =
         type + pkg_len[0] + pkg_len[1] + data[0] + data[1] + data[2] + data[3];
+    uint8_t checksum[2] = {cks >> 8, cks & 0xFF};
+    /* Transmit */
+    AS608_Transmit(uart, type, pkg_len, data, checksum);
+
+    /* Receive */
+    uint8_t buffer[12] = {0};
+    int fail = AS608_Receive(uart, 12, buffer);
+    if (fail)
+        return fail;
+
+    fail = buffer[9];
+    return fail;
+}
+
+
+int FP_Delete(UART_HandleTypeDef *uart, int pageID)
+{
+    uint8_t type = AS608_CMD;
+    uint8_t pkg_len[2] = {0x00, 0x07};
+//    uint8_t data[4] = {AS608_Store, buffID, pageID};
+
+    uint8_t data[5];
+    data[0] = AS608_DeletChar;          // 1 byte
+    data[1] = (uint8_t)(pageID >> 8); // 2 byte (high byte)
+    data[2] = (uint8_t)pageID;      // 2 byte (low byte)
+    data[3] = 0x00;
+    data[4] = 0x01;
+
+    short cks =
+        type + pkg_len[0] + pkg_len[1] + data[0] + data[1] + data[2] + data[3] + data[4];
     uint8_t checksum[2] = {cks >> 8, cks & 0xFF};
     /* Transmit */
     AS608_Transmit(uart, type, pkg_len, data, checksum);
@@ -152,6 +188,7 @@ int FP_Empty(UART_HandleTypeDef *uart)
 int FP_Search(UART_HandleTypeDef *uart, int buffID){
     uint8_t type = AS608_CMD;
     uint8_t pkg_len[2] = {0x00, 0x08};
+//    uint8_t data[6] = {AS608_Search, buffID, 0x00, 0x00, 0x00, 0x40};
     uint8_t data[6] = {AS608_Search, buffID, 0x00, 0x00, 0x00, 0x40};
     short cks = type + pkg_len[0] + pkg_len[1];
     for (int i = 0; i < 6; i++)
@@ -175,7 +212,7 @@ int FP_Search(UART_HandleTypeDef *uart, int buffID){
 }
 static int page_count = 0;
 
-int register_new_fingerprint(UART_HandleTypeDef *uart)
+int register_new_fingerprint(UART_HandleTypeDef *uart, int  set_page_count)
 {
 	/*
 	 * You need to put your finger on the device two times.
@@ -184,14 +221,28 @@ int register_new_fingerprint(UART_HandleTypeDef *uart)
 	 */
     int fail = 0;
 
+    //		LD6 blue
+    //		LD5 red
+    //		LD3 orange
+    //		LD4 green
+
     /*
      * First time
      * TODO: Show the indicator to tell the user put the finger
      * on the device.
      */
-    HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+    int wait_counter = 0;
     while ((fail = FP_GenImg(uart)) == 0x2)
-    	HAL_Delay(10);
+    {
+    	wait_counter++;
+    	if(wait_counter > 20 )
+    	{
+    		wait_counter = 0;
+    		break;
+    	}
+    }
+    HAL_Delay(10);
     if (fail)
         return fail;
 
@@ -206,7 +257,15 @@ int register_new_fingerprint(UART_HandleTypeDef *uart)
      */
     HAL_GPIO_WritePin(LD6_GPIO_Port, LD6_Pin, GPIO_PIN_SET);
     while ((fail = FP_GenImg(uart)) == 0x2)
-        HAL_Delay(10);
+    {
+    	wait_counter++;
+    	if(wait_counter > 20 )
+    	{
+    		wait_counter = 0;
+    		break;
+    	}
+    }
+    HAL_Delay(10);
     if (fail)
         return fail;
 
@@ -218,14 +277,23 @@ int register_new_fingerprint(UART_HandleTypeDef *uart)
     if (fail)
         return fail;
 
-    fail = FP_Store(uart, 0x01, page_count);
+    fail = FP_Store(uart, 0x01, set_page_count);
     return fail;
 }
 
 int search_fingerprint(UART_HandleTypeDef *uart)
 {
     int fail = 0;
-    while ((fail = FP_GenImg(uart)) == 0x02)
+    int wait_counter = 0;
+    while ((fail = FP_GenImg(uart)) == 0x2)
+    {
+    	wait_counter++;
+    	if(wait_counter > 10 )
+    	{
+    		wait_counter = 0;
+    		break;
+    	}
+    }
         HAL_Delay(10);
     if (fail)
         return fail;

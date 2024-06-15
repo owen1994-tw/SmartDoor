@@ -56,12 +56,15 @@ int FP_RegModel(UART_HandleTypeDef *uart);
 
 int FP_Store(UART_HandleTypeDef *uart, int buffID, int pageID);
 
+int FP_Delete(UART_HandleTypeDef *uart, int pageID);
+
 int FP_Empty(UART_HandleTypeDef *uart);
 
 int FP_Search(UART_HandleTypeDef *uart, int buffID);
 
 
 /* High-Level API */
-int register_new_fingerprint(UART_HandleTypeDef *uart);
+//int register_new_fingerprint(UART_HandleTypeDef *uart);
+int register_new_fingerprint(UART_HandleTypeDef *uart, int  set_page_count);
 
 int search_fingerprint(UART_HandleTypeDef *uart);

@@ -147,15 +147,15 @@ static void AppTaskCreate(void)
 
 
 
-	xReturn = xTaskCreate((TaskFunction_t	)DoorCtrlTask,
-															(const char* 	)"DoorCtrlTask",
-															(uint32_t 		)128,
-															(void* 		  	)NULL,
-															(UBaseType_t 	)5,
-															(TaskHandle_t*  )&DoorCtrlTask_Handle);
-
-	if(pdPASS == xReturn)
-		printf("DoorCtrlTask Task Create Successful!\r\n");
+//	xReturn = xTaskCreate((TaskFunction_t	)DoorCtrlTask,
+//															(const char* 	)"DoorCtrlTask",
+//															(uint32_t 		)128,
+//															(void* 		  	)NULL,
+//															(UBaseType_t 	)5,
+//															(TaskHandle_t*  )&DoorCtrlTask_Handle);
+//
+//	if(pdPASS == xReturn)
+//		printf("DoorCtrlTask Task Create Successful!\r\n");
 
 //	xReturn = xTaskCreate((TaskFunction_t	)RFIDTask,
 //															(const char* 	)"RFIDTask",
@@ -166,14 +166,14 @@ static void AppTaskCreate(void)
 //	if(pdPASS == xReturn)
 //		printf("RFIDTask Task Create Successful!\r\n");
 
-//	xReturn = xTaskCreate((TaskFunction_t	)FPTask,
-//															(const char* 	)"FPTask",
-//															(uint32_t 		)128,
-//															(void* 		  	)NULL,
-//															(UBaseType_t 	)4,
-//															(TaskHandle_t*  )&FPTask_Handle);
-//	if(pdPASS == xReturn)
-//		printf("FPTask Task Create Successful!\r\n");
+	xReturn = xTaskCreate((TaskFunction_t	)FPTask,
+															(const char* 	)"FPTask",
+															(uint32_t 		)128,
+															(void* 		  	)NULL,
+															(UBaseType_t 	)4,
+															(TaskHandle_t*  )&FPTask_Handle);
+	if(pdPASS == xReturn)
+		printf("FPTask Task Create Successful!\r\n");
 
 
 
