@@ -13,6 +13,11 @@ void InitStoredRFIDCards()
         }
     }
     memset(EmptyRFIDCards, 0xFF, RFID_CARD_LENGTH);
+    storedRFIDCards[0][0] = 67;
+    storedRFIDCards[0][1] = 4;
+    storedRFIDCards[0][2] = 23;
+    storedRFIDCards[0][3] = 20;
+    storedRFIDCards[0][4] = 68;
 }
 
 

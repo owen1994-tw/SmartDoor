@@ -5,6 +5,9 @@
 typedef unsigned char uint8_t;
 #endif
 
+#ifndef __FP_H
+#define __FP_H
+
 enum as608_pkg_type {
     AS608_CMD = 1,
     AS608_DATA,
@@ -68,3 +71,6 @@ int FP_Search(UART_HandleTypeDef *uart, int buffID);
 int register_new_fingerprint(UART_HandleTypeDef *uart, int  set_page_count);
 
 int search_fingerprint(UART_HandleTypeDef *uart);
+
+
+#endif

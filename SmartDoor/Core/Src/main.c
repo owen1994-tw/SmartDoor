@@ -20,6 +20,7 @@
 #include "main.h"
 #include "i2c.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -56,12 +57,14 @@ static TaskHandle_t AppTaskCreate_Handle;
 static TaskHandle_t DoorCtrlTask_Handle;
 static TaskHandle_t RFIDTask_Handle;
 static TaskHandle_t FPTask_Handle;
+static TaskHandle_t xMotorTask_Handle;
 
 //Queue Handle
 //QueueHandle_t Ctrl_RFID_Queue;
 //QueueHandle_t RFID_Ctrl_Queue;
 QueueHandle_t Ctrl_FP_Queue;
 QueueHandle_t FP_Ctrl_Queue;
+QueueHandle_t Ctrl_Motor_Queue;
 
 QueueData gCtrl_RFID;
 
@@ -69,9 +72,14 @@ uint8_t data;
 uint8_t status;
 uint8_t str[MAX_LEN]; // Max_LEN = 16
 uint8_t sNum[5];
+uint8_t fp_activate;
 
 uint8_t storedRFIDCards[MAX_CARDS][RFID_CARD_LENGTH];
 uint8_t EmptyRFIDCards[RFID_CARD_LENGTH];
+
+SemaphoreHandle_t xKeyScanSemaphore;
+
+char press_key;
 
 
 //static TaskHandle_t IC_Task_Handle;
@@ -89,7 +97,7 @@ void SystemClock_Config(void);
 
 PUTCHAR_PROTOTYPE
 {
-	HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart3, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
 	return ch;
 }
 
@@ -120,6 +128,10 @@ static void Queue_Init(void)
 		printf("FP_Ctrl_Queue create fail \r \n");
 	}
 
+	Ctrl_Motor_Queue = xQueueCreate(QUEUE_LENGTH, sizeof(QueueData_init));
+	if (Ctrl_Motor_Queue == NULL) {
+		printf("Ctrl_Motor_Queue create fail \r \n");
+	}
 }
 
 
@@ -140,6 +152,44 @@ static void BSP_Init(void)
 /* USER CODE BEGIN 0 */
 
 
+uint16_t GetCCRFromAngle(float InputAngle){
+    float Ret=InputAngle/180*2000+500;
+    return Ret;
+}
+
+void MotorTask( void ){
+
+
+	QueueData MotorqueueData_rx;
+
+
+    for(;;){
+
+//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+//		vTaskDelay(200);
+
+        if(xQueueReceive(Ctrl_Motor_Queue, &(MotorqueueData_rx), pdMS_TO_TICKS(50)))
+        {
+
+            if(MotorqueueData_rx.systemmode == OPEN) { // Forward 180 degrees
+				__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, GetCCRFromAngle(180));
+//				vTaskDelay(50);
+	            printf("MotorTask OPEN \n");
+            }
+            else if(MotorqueueData_rx.systemmode == CLOSE)
+            { // Backward 180 degrees
+				__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, GetCCRFromAngle(0));
+//				vTaskDelay(50);
+				printf("MotorTask CLOSE \n");
+            }
+        }
+        vTaskDelay(500);
+
+
+    }
+
+}
+
 static void AppTaskCreate(void)
 {
 	BaseType_t xReturn = pdPASS;
@@ -147,15 +197,15 @@ static void AppTaskCreate(void)
 
 
 
-//	xReturn = xTaskCreate((TaskFunction_t	)DoorCtrlTask,
-//															(const char* 	)"DoorCtrlTask",
-//															(uint32_t 		)128,
-//															(void* 		  	)NULL,
-//															(UBaseType_t 	)5,
-//															(TaskHandle_t*  )&DoorCtrlTask_Handle);
-//
-//	if(pdPASS == xReturn)
-//		printf("DoorCtrlTask Task Create Successful!\r\n");
+	xReturn = xTaskCreate((TaskFunction_t	)DoorCtrlTask,
+															(const char* 	)"DoorCtrlTask",
+															(uint32_t 		)128,
+															(void* 		  	)NULL,
+															(UBaseType_t 	)4,
+															(TaskHandle_t*  )&DoorCtrlTask_Handle);
+
+	if(pdPASS == xReturn)
+		printf("DoorCtrlTask Task Create Successful!\r\n");
 
 //	xReturn = xTaskCreate((TaskFunction_t	)RFIDTask,
 //															(const char* 	)"RFIDTask",
@@ -166,14 +216,22 @@ static void AppTaskCreate(void)
 //	if(pdPASS == xReturn)
 //		printf("RFIDTask Task Create Successful!\r\n");
 
-	xReturn = xTaskCreate((TaskFunction_t	)FPTask,
-															(const char* 	)"FPTask",
+//	xReturn = xTaskCreate((TaskFunction_t	)FPTask,
+//															(const char* 	)"FPTask",
+//															(uint32_t 		)128,
+//															(void* 		  	)NULL,
+//															(UBaseType_t 	)4,
+//															(TaskHandle_t*  )&FPTask_Handle);
+//	if(pdPASS == xReturn)
+//		printf("FPTask Task Create Successful!\r\n");
+
+	xReturn = xTaskCreate((TaskFunction_t	)MotorTask,
+															(const char* 	)"MotorTask",
 															(uint32_t 		)128,
 															(void* 		  	)NULL,
-															(UBaseType_t 	)4,
-															(TaskHandle_t*  )&FPTask_Handle);
+															(UBaseType_t 	)3,
+															(TaskHandle_t*  )&xMotorTask_Handle);
 	if(pdPASS == xReturn)
-		printf("FPTask Task Create Successful!\r\n");
 
 
 
@@ -215,12 +273,21 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_SPI1_Init();
+  MX_USART3_UART_Init();
+  MX_TIM2_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   BaseType_t xReturn = pdPASS;
 
   MFRC522_Init();
   InitStoredRFIDCards();
   BSP_Init();
+
+  HAL_TIM_Base_Start_IT(&htim6);
+  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
+
+  xKeyScanSemaphore = xSemaphoreCreateBinary();
+
   printf("BSP Init Done!\r\n");
 
   Queue_Init();
@@ -266,12 +333,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 72;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
@@ -317,6 +383,65 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+
+  if (htim->Instance == TIM6) {
+//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+
+    	press_key = KEY_SCAN();
+
+		if (press_key != '\0')
+		{
+			printf("press_key = %c \r\n",press_key);
+
+			BaseType_t xHigherPriorityTaskWoken;
+			xHigherPriorityTaskWoken = pdFALSE;
+			xSemaphoreGiveFromISR(xKeyScanSemaphore,&xHigherPriorityTaskWoken);
+			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+		}
+
+
+	   status = MFRC522_Request(PICC_REQIDL, str);
+	   if (status == MI_OK)
+	   {
+		   status = MFRC522_Anticoll(str);
+	   }
+
+
+	   if(fp_activate > 50)
+	   {
+		   fp_activate = 0;
+	   }
+	   else
+	   {
+		   fp_activate++;
+//		   printf("fp_activate : %u \r\n",fp_activate );
+	   }
+
+
+//		status = MFRC522_Request(PICC_REQIDL, str);
+//		status = MFRC522_Anticoll(str);
+//		if (status == MI_OK)
+//		{
+//			BaseType_t xHigherPriorityTaskWoken;
+//			xHigherPriorityTaskWoken = pdFALSE;
+//			xSemaphoreGiveFromISR(xRFIDSemaphore,&xHigherPriorityTaskWoken);
+//			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+//		}
+
+//		if (press_key != '\0')
+//		{
+//			BaseType_t xHigherPriorityTaskWoken;
+//			xHigherPriorityTaskWoken = pdFALSE;
+//			xSemaphoreGiveFromISR(xKeyScanSemaphore,&xHigherPriorityTaskWoken);
+//			portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+//		}
+
+
+//	    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+//	    if (xSemaphoreGiveFromISR(xKeyScanSemaphore, &xHigherPriorityTaskWoken) == pdTRUE) {
+//	      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+//	    }
+  }
 
   /* USER CODE END Callback 1 */
 }

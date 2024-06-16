@@ -39,10 +39,12 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "semphr.h"
 #include <KEY/key.h>
 #include <OLED/OLED.h>
 #include <MFRC522/MFRC522.h>
 #include <MFRC522/CardMan.h>
+#include <FingerPrint/as608.h>
 #include "tasks.h"
 #include "usart.h"
 

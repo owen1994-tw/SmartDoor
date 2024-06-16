@@ -232,6 +232,7 @@ int register_new_fingerprint(UART_HandleTypeDef *uart, int  set_page_count)
      * on the device.
      */
     HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+    printf("reg fp 1\r\n");
     int wait_counter = 0;
     while ((fail = FP_GenImg(uart)) == 0x2)
     {
@@ -255,7 +256,8 @@ int register_new_fingerprint(UART_HandleTypeDef *uart, int  set_page_count)
      * TODO: Show the indicator to tell the user put the finger
      * on the device.
      */
-    HAL_GPIO_WritePin(LD6_GPIO_Port, LD6_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
+    printf("reg fp 2\r\n");
     while ((fail = FP_GenImg(uart)) == 0x2)
     {
     	wait_counter++;
@@ -297,7 +299,7 @@ int search_fingerprint(UART_HandleTypeDef *uart)
         HAL_Delay(10);
     if (fail)
         return fail;
-    
+
     fail = FP_Img2Tz(uart, 0x01);
     if (fail)
         return fail;
