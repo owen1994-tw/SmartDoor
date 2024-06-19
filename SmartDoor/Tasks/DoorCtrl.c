@@ -73,7 +73,7 @@ void DoorCtrlTask(void* parameter)
 
 	int fail = 0;
 
-	int set_ID;
+	int set_ID,PF_num;
 
 	UBaseType_t uxMessagesWaiting;
 
@@ -473,7 +473,7 @@ void DoorCtrlTask(void* parameter)
 				OLED_ShowChinese(0, 16, "管理密碼錯誤");
 				OLED_Update();
 				vTaskDelay(500);
-				Mode = OPEN;
+				Mode = OPEN_CLEAR;
 			}
 			memset(Password, '\0', PASSWORD_LENGTH);
 			OLED_Clear();
@@ -1168,7 +1168,6 @@ void DoorCtrlTask(void* parameter)
 									}
 									else if(press_key == 'A')
 									{
-										memset(FP_ID, '\0', 2);
 										OLED_ClearArea(0, 32, 128, 16);
 										SubNewFPPage = 4;
 									}
@@ -1282,6 +1281,7 @@ void DoorCtrlTask(void* parameter)
 						break;
 
 					case 4:
+						memset(FP_ID, '\0', 2);
 						OLED_Clear();
 						OLED_Update();
 			    		Mode = MANAGE_CLEAR;
@@ -1329,7 +1329,9 @@ void DoorCtrlTask(void* parameter)
 									else if(press_key == '*')
 									{
 										/* FP ID */
-										if (strlen(FP_ID) != 0)
+
+										PF_num = FP_ID[0] - '0';
+										if (strlen(FP_ID) != 0 && PF_num != 0)
 										{
 											SubDelFPPage = 2;
 											OLED_Clear();
@@ -1450,6 +1452,7 @@ void DoorCtrlTask(void* parameter)
 						break;
 
 					case 4:
+						memset(FP_ID, '\0', 2);
 						OLED_Clear();
 						OLED_Update();
 						Mode = MANAGE_CLEAR;
